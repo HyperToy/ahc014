@@ -123,11 +123,11 @@ impl State {
 			let dy01 = rect[1].1 - rect[0].1;
 			let dx03 = rect[3].0 - rect[0].0;
 			let dy03 = rect[3].1 - rect[0].1;
-			if dx01 * dx03 + dy01 * dy03 != 0 {
+			if dx01 * dx03 + dy01 * dy03 != 0 { // 直角
 				return "Illegal rectangle".to_owned();
-			} else if dx01 != 0 && dy01 != 0 && dx01.abs() != dy01.abs() {
+			} else if dx01 != 0 && dy01 != 0 && dx01.abs() != dy01.abs() { // 斜め45°
 				return "Illegal rectangle".to_owned();
-			} else if (rect[1].0 + dx03, rect[1].1 + dy03) != rect[2] {
+			} else if (rect[1].0 + dx03, rect[1].1 + dy03) != rect[2] { // 4つ目の点が想定したところにある
 				return "Illegal rectangle".to_owned();
 			} else {
 				for i in 0..4 {

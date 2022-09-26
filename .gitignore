@@ -2,3 +2,5 @@ tools/in
 tools/out
 tools/target
 tools/README*
+.vscode/
+[a-z]
