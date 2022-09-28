@@ -3,6 +3,16 @@ using namespace std;
 using P = pair<int, int>;
 using Output = vector<vector<P>>;
 #define rep(i,n) for (int i = 0; i < (n); ++i)
+#define DEBUG 0
+
+const double TIME_LIMIT = 4.5;
+struct Timer {
+    clock_t start;
+    Timer() { reset(); }
+    void reset() { start = clock(); }
+    double get() { return (double)(clock() - start) / CLOCKS_PER_SEC; }
+};
+Timer timer;
 
 int signum(int n) {
     if (n > 0) return 1;
@@ -36,19 +46,20 @@ struct Status {
             has_point[input.ps[i].first][input.ps[i].second] = true;
         }
     }
+    // O(N)
     string check_move(vector<P> rect) {
         for (int i = 1; i < 4; i++) {
             if (!has_point[rect[i].first][rect[i].second]) {
                 return "(" + to_string(rect[i].first) + ", " + to_string(rect[i].second) + ") does not contain a dot";
             }
         }
-        cerr << "here" << endl;
-        cerr << rect[0].first << " : " << rect[0].second << endl;
+        if (DEBUG) cerr << "here" << endl;
+        if (DEBUG) cerr << rect[0].first << " : " << rect[0].second << endl;
         if (has_point[rect[0].first][rect[0].second]) {
             return "(" + to_string(rect[0].first) + ", " + to_string(rect[0].second) + ") already contains a dot";
         }
 
-        cerr << "here" << endl;
+        if (DEBUG) cerr << "here" << endl;
         int dx01 = rect[1].first - rect[0].first;
         int dy01 = rect[1].second - rect[0].second;
         int dx03 = rect[3].first - rect[0].first;
@@ -62,7 +73,7 @@ struct Status {
         if (rect[1].first + dx03 != rect[2].second || rect[1].second + dy03 != rect[2].second) {
             return "Illegal rectangle";
         }
-        cerr << "here" << endl;
+        if (DEBUG) cerr << "here" << endl;
 
         rep(i,4) {
             int x = rect[i].first;
@@ -75,9 +86,9 @@ struct Status {
             rep(k,8) if (DXY[k].first == dx && DXY[k].second == dy) {
                 dir = k;
             }
-            cerr << dx << " : " << dy << endl;
-            cerr << x << " : " << y << endl;
-            cerr << "before while" << endl;
+            if (DEBUG) cerr << dx << " : " << dy << endl;
+            if (DEBUG) cerr << x << " : " << y << endl;
+            if (DEBUG) cerr << "before while" << endl;
             while (x != tx || y != ty) {
                 if (x != rect[i].first || y != rect[i].second) {
                     if (has_point[x][y]) {
@@ -93,10 +104,11 @@ struct Status {
                     return "Overlapped rectangles";
                 }
             }
-            cerr << "after while" << endl;
+            if (DEBUG) cerr << "after while" << endl;
         }
         return "";
     }
+    // O(N)
     void apply_move(vector<P> rect) {
         has_point[rect[0].first][rect[0].second] = true;
         rep(i,4) {
@@ -146,8 +158,10 @@ void solve() {
     Output output;
     int found = 0;
 
+    timer.reset();
+    while (timer.get() < TIME_LIMIT) {
     rep(i,input.ps.size()) {
-        vector<P> rect(4, {-1, -1});
+        vector<P> rect(4, {0, 0});
         rect[2] = input.ps[i];
         rep(dir,8) {
             int x = rect[2].first;
@@ -157,7 +171,7 @@ void solve() {
             while (0 <= x && x < input.N && 0 <= y && y < input.N) {
                 if (x != rect[2].first && y != rect[2].second && status.has_point[x][y]) {
                     rect[1] = {x, y};
-                    // cerr << "found" << endl;
+                    // if (DEBUG) cerr << "found" << endl;
                     break;
                 }
                 x += dx;
@@ -170,36 +184,33 @@ void solve() {
             while (0 <= x && x < input.N && 0 <= y && y < input.N) {
                 if (x != rect[2].first && y != rect[2].second && status.has_point[x][y]) {
                     rect[3] = {x, y};
-                    // cerr << "found" << endl;
+                    // if (DEBUG) cerr << "found" << endl;
                     break;
                 }
                 x += dx;
                 y += dy;
             }
-            if (rect[1].first != -1 && rect[3].first != -1) {
-                found++;
-                cerr << "found: " << found << endl;
-                // break;
-                int dx21 = rect[1].first - rect[2].first;
-                int dy21 = rect[1].second - rect[2].second;
-                rect[0].first = rect[3].first + dx21;
-                rect[0].second = rect[3].second + dy21;
-                if (rect[0].first < 0 || input.N <= rect[0].first || rect[0].second < 0 || input.N <= rect[0].second) {
-                    rect[1] = rect[3] = {-1, -1};
-                    continue;
-                }
-                cerr << "check" << endl;
-                string err = status.check_move(rect);
-                cerr << "end check" << endl;
-                if (err.length() == 0) {
-                    cerr << "apply" << endl;
-                    status.apply_move(rect);
-                    output.push_back(rect);
-                    break;
-                }
-                cerr << err << endl;
+            int dx21 = rect[1].first - rect[2].first;
+            int dy21 = rect[1].second - rect[2].second;
+            rect[0].first = rect[3].first + dx21;
+            rect[0].second = rect[3].second + dy21;
+            if (rect[0].first < 0 || input.N <= rect[0].first || rect[0].second < 0 || input.N <= rect[0].second) {
+                rect[1] = rect[3] = {0, 0};
+                continue;
             }
+            if (DEBUG) cerr << "check" << endl;
+            string err = status.check_move(rect);
+            if (DEBUG) cerr << "end check" << endl;
+            if (err.length() == 0) {
+                if (DEBUG) cerr << "apply" << endl;
+                status.apply_move(rect);
+                output.push_back(rect);
+                input.ps.push_back(rect[0]);
+                break;
+            }
+            if (DEBUG) cerr << err << endl;
         }
+    }
     }
 
     parse_output(output);
