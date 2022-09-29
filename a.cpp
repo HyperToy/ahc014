@@ -210,6 +210,32 @@ void add_can_moves(stack<vector<P>> &st, P point, Status status, int N) {
     for (vector<P> rect : rects) {
         st.push(rect);
     }
+
+    vector<P> each_dir(8);
+    vector<bool> found(8, false);
+    rep(dir,8) {
+        int dx = DXY[dir].first;
+        int dy = DXY[dir].second;
+        int x = point.first + dx;
+        int y = point.second + dy;
+        while (inside({x, y}, N)) {
+            if (status.has_point[x][y]) {
+                each_dir[dir] = {x, y};
+                found[dir] = true;
+                break;
+            }
+            x += dx;
+            y += dy;
+        }
+    }
+    rep(dir,8) {
+        if (found[dir]) {
+            rects = search_rectangle(each_dir[dir], status, N);
+            for (vector<P> rect : rects) {
+                st.push(rect);
+            }
+        }
+    }
 }
 
 void solve() {
@@ -238,6 +264,7 @@ void solve() {
         }
         if (DEBUG) cerr << err << endl;
     }
+    cerr << "time: " << timer.get() << endl;
     cerr << "rectangle count: " << cnt << endl;
     parse_output(output);
 }
