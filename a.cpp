@@ -38,7 +38,7 @@ const P DXY[] = {
 bool comp(vector<P> &a, vector<P> &b) {
     int a_len = max(abs(a[1].first - a[0].first), abs(a[1].second - a[0].second)) + max(abs(a[3].first - a[0].first), abs(a[3].second - a[0].second));
     int b_len = max(abs(b[1].first - b[0].first), abs(b[1].second - b[0].second)) + max(abs(b[3].first - b[0].first), abs(b[3].second - b[0].second));
-    return a_len < b_len;
+    return a_len > b_len;
 }
 
 struct Input {
@@ -200,21 +200,21 @@ vector<vector<P>> search_rectangle(P point, Status status, int N) {
     return res;
 }
 
-stack<vector<P>> get_can_moves(Input input, Status status) {
-    stack<vector<P>> res;
+vector<vector<P>> get_can_moves(Input input, Status status) {
+    vector<vector<P>> res;
     rep(i,input.ps.size()) {
         vector<vector<P>> rects = search_rectangle(input.ps[i], status, input.N);
         for (vector<P> rect : rects) {
-            res.push(rect);
+            res.push_back(rect);
         }
     }
     return res;
 }
 
-void add_can_moves(stack<vector<P>> &st, P point, Status status, int N) {
+void add_can_moves(vector<vector<P>> &st, P point, Status status, int N) {
     vector<vector<P>> rects = search_rectangle(point, status, N);
     for (vector<P> rect : rects) {
-        st.push(rect);
+        st.push_back(rect);
     }
 
     vector<P> each_dir(8);
@@ -238,7 +238,7 @@ void add_can_moves(stack<vector<P>> &st, P point, Status status, int N) {
         if (found[dir]) {
             rects = search_rectangle(each_dir[dir], status, N);
             for (vector<P> rect : rects) {
-                st.push(rect);
+                st.push_back(rect);
             }
         }
     }
@@ -251,13 +251,14 @@ void solve() {
     Output output;
     int found = 0;
 
-    stack<vector<P>> can_move = get_can_moves(input, status);
+    vector<vector<P>> can_move = get_can_moves(input, status);
 
     timer.reset();
     int cnt = 0;
 
     while (timer.get() < TIME_LIMIT && !can_move.empty()) {
-        vector<P> rect = can_move.top(); can_move.pop();
+        sort(can_move.begin(), can_move.end(), comp);
+        vector<P> rect = can_move.back(); can_move.pop_back();
         string err = status.check_move(rect);
         if (err.length() == 0) {
             if (DEBUG) cerr << "apply" << endl;
@@ -291,11 +292,11 @@ void test () {
     assert(st.size() == 2);
     while (!st.empty()) {
         cerr << "{";
-        rep(i,st.top().size()) {
-            cerr << "{" << st.top()[i].first << ", " << st.top()[i].second << "}";
-            if (i < st.top().size() - 1) cerr << ", ";
+        rep(i,st.back().size()) {
+            cerr << "{" << st.back()[i].first << ", " << st.back()[i].second << "}";
+            if (i < st.back().size() - 1) cerr << ", ";
         }
         cerr << "}" << endl;
-        st.pop();
+        st.pop_back();
     }
 }
