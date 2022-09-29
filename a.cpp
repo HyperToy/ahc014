@@ -35,6 +35,12 @@ const P DXY[] = {
 	{1, -1}
 };
 
+bool comp(vector<P> &a, vector<P> &b) {
+    int a_len = max(abs(a[1].first - a[0].first), abs(a[1].second - a[0].second)) + max(abs(a[3].first - a[0].first), abs(a[3].second - a[0].second));
+    int b_len = max(abs(b[1].first - b[0].first), abs(b[1].second - b[0].second)) + max(abs(b[3].first - b[0].first), abs(b[3].second - b[0].second));
+    return a_len < b_len;
+}
+
 struct Input {
     int N;
     vector<P> ps;
