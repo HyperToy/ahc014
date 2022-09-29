@@ -155,40 +155,61 @@ void parse_output(Output output) {
     }
 }
 
-stack<vector<P>> get_can_moves(Input input, Status status) {
-    stack<vector<P>> res;
-    rep(i,input.ps.size()) {
-        vector<P> rect(4);
-        rect[2] = input.ps[i];
-        vector<P> each_dir(8);
-        rep(dir,8) {
-            int dx = DXY[dir].first;
-            int dy = DXY[dir].second;
-            int x = rect[2].first + dx;
-            int y = rect[2].second + dy;
-            while (inside({x, y}, input.N)) {
-                if (status.has_point[x][y]) {
-                    each_dir[dir] = {x, y};
-                    break;
-                }
-                x += dx;
-                y += dy;
+vector<vector<P>> search_rectangle(P point, Status status, int N) {
+    vector<vector<P>> res;
+
+    vector<P> rect(4);
+    rect[2] = point;
+    vector<P> each_dir(8);
+    vector<bool> found(8, false);
+    rep(dir,8) {
+        int dx = DXY[dir].first;
+        int dy = DXY[dir].second;
+        int x = rect[2].first + dx;
+        int y = rect[2].second + dy;
+        while (inside({x, y}, N)) {
+            if (status.has_point[x][y]) {
+                each_dir[dir] = {x, y};
+                found[dir] = true;
+                break;
             }
+            x += dx;
+            y += dy;
         }
-        rep(dir,8) {
+    }
+    rep(dir,8) {
+        if (found[dir] && found[(dir + 2) % 8]) {
             rect[1] = each_dir[dir];
             rect[3] = each_dir[(dir + 2) % 8];
             rect[0].first = rect[3].first + rect[1].first - rect[2].first;
             rect[0].second = rect[3].second + rect[1].second - rect[2].second;
-            if (inside(rect[0], input.N)) {
+            if (inside(rect[0], N)) {
                 string err = status.check_move(rect);
                 if (err.length() == 0) {
-                    res.push(rect);
+                    res.push_back(rect);
                 }
             }
         }
     }
     return res;
+}
+
+stack<vector<P>> get_can_moves(Input input, Status status) {
+    stack<vector<P>> res;
+    rep(i,input.ps.size()) {
+        vector<vector<P>> rects = search_rectangle(input.ps[i], status, input.N);
+        for (vector<P> rect : rects) {
+            res.push(rect);
+        }
+    }
+    return res;
+}
+
+void add_can_moves(stack<vector<P>> &st, P point, Status status, int N) {
+    vector<vector<P>> rects = search_rectangle(point, status, N);
+    for (vector<P> rect : rects) {
+        st.push(rect);
+    }
 }
 
 void solve() {
@@ -201,67 +222,31 @@ void solve() {
     stack<vector<P>> can_move = get_can_moves(input, status);
 
     timer.reset();
-    while (timer.get() < TIME_LIMIT) {
-        rep(i,input.ps.size()) {
-            vector<P> rect(4, {0, 0});
-            rect[2] = input.ps[i];
-            rep(dir,8) {
-                int x = rect[2].first;
-                int y = rect[2].second;
-                int dx = DXY[dir].first;
-                int dy = DXY[dir].second;
-                while (inside({x, y}, input.N)) {
-                    if (x != rect[2].first && y != rect[2].second && status.has_point[x][y]) {
-                        rect[1] = {x, y};
-                        // if (DEBUG) cerr << "found" << endl;
-                        break;
-                    }
-                    x += dx;
-                    y += dy;
-                }
-                x = rect[2].first;
-                y = rect[2].second;
-                dx = DXY[(dir + 2) % 8].first;
-                dy = DXY[(dir + 2) % 8].second;
-                while (inside({x, y}, input.N)) {
-                    if (x != rect[2].first && y != rect[2].second && status.has_point[x][y]) {
-                        rect[3] = {x, y};
-                        // if (DEBUG) cerr << "found" << endl;
-                        break;
-                    }
-                    x += dx;
-                    y += dy;
-                }
-                int dx21 = rect[1].first - rect[2].first;
-                int dy21 = rect[1].second - rect[2].second;
-                rect[0].first = rect[3].first + dx21;
-                rect[0].second = rect[3].second + dy21;
-                if (!inside(rect[0], input.N)) {
-                    rect[1] = rect[3] = {0, 0};
-                    continue;
-                }
-                if (DEBUG) cerr << "check" << endl;
-                string err = status.check_move(rect);
-                if (DEBUG) cerr << "end check" << endl;
-                if (err.length() == 0) {
-                    if (DEBUG) cerr << "apply" << endl;
-                    status.apply_move(rect);
-                    output.push_back(rect);
-                    input.ps.push_back(rect[0]);
-                    break;
-                }
-                if (DEBUG) cerr << err << endl;
-            }
-        }
-    }
+    int cnt = 0;
 
+    while (timer.get() < TIME_LIMIT && !can_move.empty()) {
+        vector<P> rect = can_move.top(); can_move.pop();
+        string err = status.check_move(rect);
+        if (err.length() == 0) {
+            if (DEBUG) cerr << "apply" << endl;
+            status.apply_move(rect);
+            cnt++;
+            output.push_back(rect);
+            // ここで、 can_move に、新たに発生した有効な長方形を入れる。
+            add_can_moves(can_move, rect[0], status, input.N);
+            input.ps.push_back(rect[0]);
+        }
+        if (DEBUG) cerr << err << endl;
+    }
+    cerr << "rectangle count: " << cnt << endl;
     parse_output(output);
 }
 
 void test();
+
 int main(){
-    // solve();
-    test();
+    solve();
+    // test();
 } 
 
 void test () {
