@@ -20,6 +20,10 @@ int signum(int n) {
     return 0;
 }
 
+bool inside(P p, int N) {
+    return 0 <= p.first && p.first < N && 0 <= p.second && p.second < N;
+}
+
 const P DXY[] = {
 	{1, 0},
 	{1, 1},
@@ -65,13 +69,13 @@ struct Status {
         int dx03 = rect[3].first - rect[0].first;
         int dy03 = rect[3].second - rect[0].second;
         if (dx01 * dx03 + dy01 * dy03 != 0) {
-            return "Illegal rectangle";
+            return "Illegal rectangle 1";
         }
         if (dx01 != 0 && dy01 != 0 && abs(dx01) != abs(dy01)) {
-            return "Illegal rectangle";
+            return "Illegal rectangle 2";
         }
-        if (rect[1].first + dx03 != rect[2].second || rect[1].second + dy03 != rect[2].second) {
-            return "Illegal rectangle";
+        if (rect[1].first + dx03 != rect[2].first || rect[1].second + dy03 != rect[2].second) {
+            return "Illegal rectangle 3";
         }
         if (DEBUG) cerr << "here" << endl;
 
@@ -151,6 +155,42 @@ void parse_output(Output output) {
     }
 }
 
+stack<vector<P>> get_can_moves(Input input, Status status) {
+    stack<vector<P>> res;
+    rep(i,input.ps.size()) {
+        vector<P> rect(4);
+        rect[2] = input.ps[i];
+        vector<P> each_dir(8);
+        rep(dir,8) {
+            int dx = DXY[dir].first;
+            int dy = DXY[dir].second;
+            int x = rect[2].first + dx;
+            int y = rect[2].second + dy;
+            while (inside({x, y}, input.N)) {
+                if (status.has_point[x][y]) {
+                    each_dir[dir] = {x, y};
+                    break;
+                }
+                x += dx;
+                y += dy;
+            }
+        }
+        rep(dir,8) {
+            rect[1] = each_dir[dir];
+            rect[3] = each_dir[(dir + 2) % 8];
+            rect[0].first = rect[3].first + rect[1].first - rect[2].first;
+            rect[0].second = rect[3].second + rect[1].second - rect[2].second;
+            if (inside(rect[0], input.N)) {
+                string err = status.check_move(rect);
+                if (err.length() == 0) {
+                    res.push(rect);
+                }
+            }
+        }
+    }
+    return res;
+}
+
 void solve() {
     Input input = parse_input();
     Status status = Status(input);
@@ -158,64 +198,86 @@ void solve() {
     Output output;
     int found = 0;
 
+    stack<vector<P>> can_move = get_can_moves(input, status);
+
     timer.reset();
     while (timer.get() < TIME_LIMIT) {
-    rep(i,input.ps.size()) {
-        vector<P> rect(4, {0, 0});
-        rect[2] = input.ps[i];
-        rep(dir,8) {
-            int x = rect[2].first;
-            int y = rect[2].second;
-            int dx = DXY[dir].first;
-            int dy = DXY[dir].second;
-            while (0 <= x && x < input.N && 0 <= y && y < input.N) {
-                if (x != rect[2].first && y != rect[2].second && status.has_point[x][y]) {
-                    rect[1] = {x, y};
-                    // if (DEBUG) cerr << "found" << endl;
+        rep(i,input.ps.size()) {
+            vector<P> rect(4, {0, 0});
+            rect[2] = input.ps[i];
+            rep(dir,8) {
+                int x = rect[2].first;
+                int y = rect[2].second;
+                int dx = DXY[dir].first;
+                int dy = DXY[dir].second;
+                while (inside({x, y}, input.N)) {
+                    if (x != rect[2].first && y != rect[2].second && status.has_point[x][y]) {
+                        rect[1] = {x, y};
+                        // if (DEBUG) cerr << "found" << endl;
+                        break;
+                    }
+                    x += dx;
+                    y += dy;
+                }
+                x = rect[2].first;
+                y = rect[2].second;
+                dx = DXY[(dir + 2) % 8].first;
+                dy = DXY[(dir + 2) % 8].second;
+                while (inside({x, y}, input.N)) {
+                    if (x != rect[2].first && y != rect[2].second && status.has_point[x][y]) {
+                        rect[3] = {x, y};
+                        // if (DEBUG) cerr << "found" << endl;
+                        break;
+                    }
+                    x += dx;
+                    y += dy;
+                }
+                int dx21 = rect[1].first - rect[2].first;
+                int dy21 = rect[1].second - rect[2].second;
+                rect[0].first = rect[3].first + dx21;
+                rect[0].second = rect[3].second + dy21;
+                if (!inside(rect[0], input.N)) {
+                    rect[1] = rect[3] = {0, 0};
+                    continue;
+                }
+                if (DEBUG) cerr << "check" << endl;
+                string err = status.check_move(rect);
+                if (DEBUG) cerr << "end check" << endl;
+                if (err.length() == 0) {
+                    if (DEBUG) cerr << "apply" << endl;
+                    status.apply_move(rect);
+                    output.push_back(rect);
+                    input.ps.push_back(rect[0]);
                     break;
                 }
-                x += dx;
-                y += dy;
+                if (DEBUG) cerr << err << endl;
             }
-            x = rect[2].first;
-            y = rect[2].second;
-            dx = DXY[(dir + 2) % 8].first;
-            dy = DXY[(dir + 2) % 8].second;
-            while (0 <= x && x < input.N && 0 <= y && y < input.N) {
-                if (x != rect[2].first && y != rect[2].second && status.has_point[x][y]) {
-                    rect[3] = {x, y};
-                    // if (DEBUG) cerr << "found" << endl;
-                    break;
-                }
-                x += dx;
-                y += dy;
-            }
-            int dx21 = rect[1].first - rect[2].first;
-            int dy21 = rect[1].second - rect[2].second;
-            rect[0].first = rect[3].first + dx21;
-            rect[0].second = rect[3].second + dy21;
-            if (rect[0].first < 0 || input.N <= rect[0].first || rect[0].second < 0 || input.N <= rect[0].second) {
-                rect[1] = rect[3] = {0, 0};
-                continue;
-            }
-            if (DEBUG) cerr << "check" << endl;
-            string err = status.check_move(rect);
-            if (DEBUG) cerr << "end check" << endl;
-            if (err.length() == 0) {
-                if (DEBUG) cerr << "apply" << endl;
-                status.apply_move(rect);
-                output.push_back(rect);
-                input.ps.push_back(rect[0]);
-                break;
-            }
-            if (DEBUG) cerr << err << endl;
         }
-    }
     }
 
     parse_output(output);
 }
 
+void test();
 int main(){
-    solve();
+    // solve();
+    test();
 } 
+
+void test () {
+    Input input = Input{7, {{2,1},{3,1},{3,2},{1,3},{2,4}}};
+    Status status = Status(input);
+    assert("" == status.check_move({{2,2}, {2,1}, {3,1}, {3,2}}));
+    assert("" == status.check_move({{4,2}, {3,1}, {1,3}, {2,4}}));
+    auto st = get_can_moves(input, status);
+    assert(st.size() == 2);
+    while (!st.empty()) {
+        cerr << "{";
+        rep(i,st.top().size()) {
+            cerr << "{" << st.top()[i].first << ", " << st.top()[i].second << "}";
+            if (i < st.top().size() - 1) cerr << ", ";
+        }
+        cerr << "}" << endl;
+        st.pop();
+    }
+}
