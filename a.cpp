@@ -5,6 +5,8 @@ using Output = vector<vector<P>>;
 #define rep(i,n) for (int i = 0; i < (n); ++i)
 #define DEBUG 0
 
+
+
 int board_size;
 
 const double TIME_LIMIT = 4.5;
@@ -149,6 +151,18 @@ struct Status {
             }
         }
     }
+    int calc_score() {
+        int res = 0;
+        int c = board_size / 2;
+        rep(x,board_size) {
+            rep(y,board_size) {
+                if (has_point[x][y]) {
+                    res += abs(x - c) * abs(x - c) + abs(y - c) * abs(y - c) + 1;
+                }
+            }
+        }
+        return res;
+    }
 };
 
 Input parse_input() {
@@ -254,17 +268,12 @@ void add_can_moves(vector<vector<P>> &st, P point, Status status, int N) {
     }
 }
 
-void solve() {
-    Input input = parse_input();
+
+pair<int, Output> func(Input input) {
     Status status = Status(input);
 
     Output output;
-    int found = 0;
-
     vector<vector<P>> can_move = get_can_moves(input, status);
-
-    timer.reset();
-    int cnt = 0;
 
     while (timer.get() < TIME_LIMIT && !can_move.empty()) {
         sort(can_move.begin(), can_move.end(), comp);
@@ -273,7 +282,6 @@ void solve() {
         if (err.length() == 0) {
             if (DEBUG) cerr << "apply" << endl;
             status.apply_move(rect);
-            cnt++;
             output.push_back(rect);
             // ここで、 can_move に、新たに発生した有効な長方形を入れる。
             add_can_moves(can_move, rect[0], status, input.N);
@@ -281,9 +289,29 @@ void solve() {
         }
         if (DEBUG) cerr << err << endl;
     }
+
+    int score = status.calc_score();
+    return {score, output};
+}
+void solve() {
+    Input input = parse_input();
+    timer.reset();
+    int cnt = 0;
+
+    int best_score = 0;
+    Output best_output;
+
+    while (timer.get() < TIME_LIMIT) {
+        pair<int, Output> result = func(input);
+        if (result.first >= best_score) {
+            best_score = result.first;
+            best_output = result.second;
+        }
+    }
+
     cerr << "time: " << timer.get() << endl;
-    cerr << "rectangle count: " << cnt << endl;
-    parse_output(output);
+    // cerr << "rectangle count: " << cnt << endl;
+    parse_output(best_output);
 }
 
 void test();
