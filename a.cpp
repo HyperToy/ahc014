@@ -6,10 +6,13 @@ using Output = vector<vector<P>>;
 #define DEBUG 0
 
 
+random_device seed_gen;
+mt19937 engine{seed_gen()};
+uniform_real_distribution<> dist{0.0, 1.0};
 
 int board_size;
 
-const double TIME_LIMIT = 4.5;
+const double TIME_LIMIT = 4.75;
 struct Timer {
     clock_t start;
     Timer() { reset(); }
@@ -39,15 +42,21 @@ const P DXY[] = {
 	{1, -1}
 };
 
-bool comp(vector<P> &a, vector<P> &b) {
+bool comp(vector<P> &a, vector<P> &b, double p) {
+
     int a_len = max(abs(a[1].first - a[0].first), abs(a[1].second - a[0].second)) + max(abs(a[3].first - a[0].first), abs(a[3].second - a[0].second));
     int b_len = max(abs(b[1].first - b[0].first), abs(b[1].second - b[0].second)) + max(abs(b[3].first - b[0].first), abs(b[3].second - b[0].second));
-    if (a_len != b_len) return a_len > b_len;
+    if (a_len != b_len) {
+        if (dist(engine) > p) return a_len > b_len;
+        else return a_len < b_len;
+    }
 
     int c = board_size / 2;
     int a_w = abs(a[0].first - c) + abs(a[0].second - c);
     int b_w = abs(b[0].first - c) + abs(b[0].second - c);
-    if (a_w != b_w) return a_w > b_w;
+    // if (a_w != b_w) return a_w > b_w;
+    if (dist(engine) > p) return a_w > b_w;
+    else return a_w < b_w;
 
     return a_len > b_len;
 }
@@ -269,24 +278,43 @@ void add_can_moves(vector<vector<P>> &st, P point, Status status, int N) {
 }
 
 
-pair<int, Output> func(Input input) {
+pair<int, Output> func(Input input, double p) {
     Status status = Status(input);
 
     Output output;
     vector<vector<P>> can_move = get_can_moves(input, status);
 
     while (timer.get() < TIME_LIMIT && !can_move.empty()) {
-        sort(can_move.begin(), can_move.end(), comp);
-        vector<P> rect = can_move.back(); can_move.pop_back();
+        // sort(can_move.begin(), can_move.end(), comp);
+
+        // vector<P> rect = can_move.back(); can_move.pop_back();
+        vector<P> rect = can_move[0];
+        for (vector<P> &r : can_move) {
+            if (comp(rect, r, p)) {
+                rect = r;
+            }
+        }
+
+        
         string err = status.check_move(rect);
         if (err.length() == 0) {
             if (DEBUG) cerr << "apply" << endl;
             status.apply_move(rect);
             output.push_back(rect);
+
+            vector<vector<P>> next_can_move;
+            for (vector<P> r : can_move) {
+                if (status.check_move(r).length() == 0) {
+                    next_can_move.push_back(r);
+                }
+            }
+            can_move = next_can_move;
+
             // ここで、 can_move に、新たに発生した有効な長方形を入れる。
             add_can_moves(can_move, rect[0], status, input.N);
             input.ps.push_back(rect[0]);
         }
+
         if (DEBUG) cerr << err << endl;
     }
 
@@ -298,20 +326,23 @@ void solve() {
     timer.reset();
     int cnt = 0;
 
-    int best_score = 0;
-    Output best_output;
+    pair<int, Output> best_result = func(input, -1);
 
+    int loop_count = 0;
+    int updt_count = 0;
     while (timer.get() < TIME_LIMIT) {
-        pair<int, Output> result = func(input);
-        if (result.first >= best_score) {
-            best_score = result.first;
-            best_output = result.second;
+        loop_count++;
+        pair<int, Output> result = func(input, dist(engine) / 20);
+        if (result.first > best_result.first) {
+            best_result = result;
+            updt_count++;
         }
     }
-
+    cerr << "loop: " << loop_count << endl;
     cerr << "time: " << timer.get() << endl;
+    cerr << "updt: " << updt_count << endl;
     // cerr << "rectangle count: " << cnt << endl;
-    parse_output(best_output);
+    parse_output(best_result.second);
 }
 
 void test();
