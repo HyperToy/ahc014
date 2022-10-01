@@ -5,6 +5,8 @@ using Output = vector<vector<P>>;
 #define rep(i,n) for (int i = 0; i < (n); ++i)
 #define DEBUG 0
 
+int board_size;
+
 const double TIME_LIMIT = 4.5;
 struct Timer {
     clock_t start;
@@ -38,6 +40,13 @@ const P DXY[] = {
 bool comp(vector<P> &a, vector<P> &b) {
     int a_len = max(abs(a[1].first - a[0].first), abs(a[1].second - a[0].second)) + max(abs(a[3].first - a[0].first), abs(a[3].second - a[0].second));
     int b_len = max(abs(b[1].first - b[0].first), abs(b[1].second - b[0].second)) + max(abs(b[3].first - b[0].first), abs(b[3].second - b[0].second));
+    if (a_len != b_len) return a_len > b_len;
+
+    int c = board_size / 2;
+    int a_w = abs(a[0].first - c) + abs(a[0].second - c);
+    int b_w = abs(b[0].first - c) + abs(b[0].second - c);
+    if (a_w != b_w) return a_w > b_w;
+
     return a_len > b_len;
 }
 
@@ -145,6 +154,7 @@ struct Status {
 Input parse_input() {
     int N, M;
     cin >> N >> M;
+    board_size = N;
     vector<P> ps(M);
     rep(i,M) cin >> ps[i].first >> ps[i].second;
     return Input{N, ps};
