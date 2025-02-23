@@ -4,3 +4,5 @@ tools/target
 tools/README*
 .vscode/
 [a-z]
+
+.DS_Store
